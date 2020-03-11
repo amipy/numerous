@@ -123,8 +123,9 @@ class TemporaryScopeWrapper:
     def update_model_from_scope(self, model):
         for scope in self.scope_dict.values():
             for scope_var in scope.variables.values():
-                if model.variables[scope_var.id].get_value() != scope_var.get_value():
-                    model.variables[scope_var.id].value = scope_var.get_value()
+                val = scope_var.value
+                if model.variables[scope_var.id].get_value() != val:
+                    model.variables[scope_var.id].value = val
 
     def get_scope_vars(self, state):
         if state.id in self.result:
