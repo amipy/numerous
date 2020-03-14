@@ -323,7 +323,7 @@ class SteadyStateSimulation(Simulation):
         update_jacobian = True
         lastupdate = 0
         while outer_stat == 0:
-            inner_stat, S, ynew, x, r = self.inner_scaled(y, update_jacobian)
+            inner_stat, S, ynew, x, r = self.inner(y, update_jacobian)
 
             test, _ = self.get_f(ynew)
             #print('inner loop out: ' + str(self.calc_residual(test)))
