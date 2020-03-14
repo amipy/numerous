@@ -223,7 +223,7 @@ class SteadyStateSimulation(Simulation):
                 stat = -2
                 break
 
-        return stat, Stest, ynew, x, rtest
+        return stat, Stest, tuple(ynew), x, rtest
 
 
     def inner_scaled(self, yin, update_jacobian=True):
@@ -243,14 +243,18 @@ class SteadyStateSimulation(Simulation):
             jacjacT = np.matmul(jac, jacT)
             self.jacT = jacT
             self.jacjacT = jacjacT
+            self.jac = jac
 
         else:
+            jac = self.jac
             jacT = self.jacT
             jacjacT = self.jacjacT
 
-
-        jacT = jacT * s
-        jacjacT = jacjacT * (s**2)
+        #jac = jac * s
+        #jacT = jac.T
+        jacT = (jac * s).T
+        jacjacT = np.matmul(jac*s, jacT)
+        #jacjacT = jacjacT * (s**2)
 
         D = np.zeros((self.num_eq_vars, self.num_eq_vars))
         diagmat = np.zeros((self.num_eq_vars, self.num_eq_vars))
@@ -287,7 +291,7 @@ class SteadyStateSimulation(Simulation):
             else:
                 l = l/2
                 self.l = l
-                ynew = xtest
+                ynew = s*xtest+m
                 #print(l, S, Stest)
                 stat = 1
                 break
@@ -296,7 +300,7 @@ class SteadyStateSimulation(Simulation):
                 stat = -2
                 break
 
-        return stat, Stest, tuple(s*ynew+m), x, rtest
+        return stat, Stest, tuple(ynew), x*s+m, rtest
 
     # return all values of equation states (dy/dt = f(t,y))
     def get_f(self, y):
@@ -340,7 +344,7 @@ class SteadyStateSimulation(Simulation):
                 conv = np.abs((S-Sold)/(Sold+1e-12))
 
             # the 3 convergence criteria
-            p_conv = np.max(np.abs(x / np.array(ynew)))
+            p_conv = np.linalg.norm(x, 1) / np.linalg.norm(ynew, 1)
             grad_conv = np.linalg.norm(np.matmul(self.jacT,r),1)
 
             if S < S_tol:
@@ -447,7 +451,7 @@ class SteadyStateSimulation(Simulation):
             iter+=1
 
             if iter > itermax:
-                status = -1
+                status = -3
                 break
 
         return derivatives
