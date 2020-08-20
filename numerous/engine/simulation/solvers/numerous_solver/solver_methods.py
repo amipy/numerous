@@ -2,6 +2,7 @@ import numpy as np
 from numba import njit
 from scipy import linalg
 import logging
+from line_profiler import LineProfiler
 
 from .linalg.lapack.lapack_python import lapack_solve_triangular, lapack_cholesky
 
@@ -24,24 +25,26 @@ class LevenbergMarquardt:
         update_jacobian_ = options.get('update_jacobian', True)
         abs_tol = options.get('atol', 0.001)
         rel_tol = options.get('rtol', 0.001)
-        profile = options.get('profile', False)
+
+        self.lp = options.get('lp', None)
+
 
         s = options.get('s', 0)
-        jacobian_stepsize = options.get('jacobian_stepsize', )
+        jacobian_stepsize = options.get('jacobian_stepsize', 1e-8)
 
         def comp(fun):
-            if profile:
-                return options['lp'](fun)
+            if self.lp is None:
+                return njit(fun)
             else:
                 return fun
 
-        @njit
+        @comp
         def calc_residual(r):
             Stemp = np.sum(r**2)
             S = Stemp / len(r)
             return S
 
-        @njit
+        #@njit
         def sparsejacobian(get_f, get_f_ix, __internal_state, t, y, s, dt, jacobian_stepsize):
             # Limits the number of equation calls by assuming a sparse jacobian matrix, for example in finite element
             num_eq_vars = len(y)
@@ -66,13 +69,13 @@ class LevenbergMarquardt:
 
             return jac
 
-        @njit
+        #@njit
         def nonesensejac(get_f, get_f_ix, __internal_state, t, y, _, dt, jacobian_stepsize):
             jac = np.zeros((len(y), len(y)))
             np.fill_diagonal(jac, 1)
             return jac
 
-        @njit
+        #@njit
         def fulljacobian(get_f, get_f_ix, __internal_state, t, y, _, dt, jacobian_stepsize):
             num_eq_vars = len(y)
             jac = np.zeros((num_eq_vars, num_eq_vars))
@@ -101,8 +104,7 @@ class LevenbergMarquardt:
 
             return jac
 
-        #@comp
-        @njit
+        @comp
         def levenberg_marquardt_inner(nm,t, dt, ynew, yold, jacT, L, l, f_init):
             #ll=l
             ll = 0
@@ -180,8 +182,7 @@ class LevenbergMarquardt:
 
             return converged, Stest, y, d, rtest, ll, stat, f
 
-        #@comp
-        @njit
+        @comp
         def levenberg_marquardt(nm, t, dt, y, _solve_state):
             yold = np.copy(y)
             n = len(y)
@@ -240,6 +241,12 @@ class LevenbergMarquardt:
             #info = {'a': 48}
             t += dt
             return t, ynew, converged, outer_stat, _solve_state#, l
+
+        if self.lp is not None:
+            self.lp.add_function(levenberg_marquardt_inner)
+            self.lp.add_function(levenberg_marquardt)
+            pass
+
 
         self.step_func = levenberg_marquardt
 

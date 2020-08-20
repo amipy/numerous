@@ -130,13 +130,15 @@ class ThermalCapacitancesSeries(Subsystem):
         self.register_items(items)
 
 def timeit(s):
-    kill_numba_cache()
+    #kill_numba_cache()
+    start0=time.time()
     s.solve()
     start = time.time()
-    s.solve()
+    s.solve(profile=True)
     end = time.time()
-    dt = end - start
-    return dt
+    dt0 = start-start0
+    dt1 = end - start
+    return dt0, dt1
 
 if __name__ == "__main__":
     import resource
@@ -156,32 +158,42 @@ if __name__ == "__main__":
     Y = []
     Z = []
 
-    num_nodes =[2,5]
+    num_nodes =[5]
     Tinit = 100
     T0 = 25
     k = 1
+    t_stop = 100
+    dt = 1
 
-    solver_type = SolverType.SOLVER_IVP
-    for i in num_nodes:#range(1,num_nodes+1):
+    solver_type = SolverType.NUMEROUS
+    sim = []
+    for i,nodes in enumerate(num_nodes):#range(1,num_nodes+1):
 
-        m = Model(ThermalCapacitancesSeries("tcs", num_nodes=i, Tinit=Tinit, T0=T0, k=k))
+        m = Model(ThermalCapacitancesSeries("tcs", num_nodes=nodes, Tinit=Tinit, T0=T0, k=k))
 
 
         # print(m.states_as_vector)
         # Define simulation
-        s = Simulation(m, t_start=0, t_stop=100, num=100, num_inner=1, max_step=0.1, solver_type=solver_type)
+
+        num = int(t_stop/dt)
+        s = Simulation(m, t_start=0, t_stop=t_stop, num=num, num_inner=1, max_step=dt, solver_type=solver_type)
+        #sim.append(s)
+
         #
         # solve simulation
-        dt = timeit(s)
+        dt0, dt1 = timeit(s)
+        #dt0, dt1 = timeit(sim[i])
+
+        print(dt0, dt1)
 
     # print(m.states_as_vector)
     # print some statitics and info
     # print(m.states_as_vector)
     #print(m.info)
 
-        X.append(i)
+        X.append(nodes)
         Z.append(m.info['Assemble time'])
-        Y.append(dt)
+        Y.append(dt1)
 
     import matplotlib.pyplot as plt
     fig = plt.figure()
