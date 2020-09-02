@@ -24,7 +24,7 @@ class Simulation:
                Not unique tag that will be used in reports or printed output.
     """
 
-    def __init__(self, model, solver_type=SolverType.NUMEROUS, t_start=0, t_stop=20000, num=1000, num_inner=1,
+    def __init__(self, model, solver_type=SolverType.SOLVER_IVP, t_start=0, t_stop=20000, num=1000, num_inner=1,
                  max_event_steps=100,
 
                  start_datetime=datetime.now(), **kwargs):
@@ -59,16 +59,20 @@ class Simulation:
         generation_finish = time.time()
         print("Generation time: ", generation_finish - generation_start)
 
-        if solver_type == SolverType.SOLVER_IVP:
+        if solver_type.value == SolverType.SOLVER_IVP.value:
             self.solver = IVP_solver(time_, delta_t, numba_model,
-                                     num_inner, max_event_steps, **kwargs)
+                                     num_inner, max_event_steps,self.model.states_as_vector, **kwargs)
 
-        if solver_type == SolverType.NUMEROUS:
+        if solver_type.value == SolverType.NUMEROUS.value:
+            print("Compiling Numerous Solver")
+            generation_start = time.time()
             self.solver = Numerous_solver(time_, delta_t, numba_model,
-                                          num_inner, max_event_steps, **kwargs)
+                                          num_inner, max_event_steps,self.model.states_as_vector, **kwargs)
+            generation_finish = time.time()
+            print("Compiling time: ", generation_finish - generation_start)
 
         self.solver.register_endstep(__end_step)
-        self.solver.set_state_vector(self.model.states_as_vector)
+
 
         self.start_datetime = start_datetime
         self.info = model.info["Solver"]
