@@ -6,6 +6,7 @@ from numerous.engine.model import  Model
 from numerous.engine.simulation import Simulation
 from numerous.engine.simulation.solvers.base_solver import SolverType
 from numerous.engine.system import Item, ConnectorTwoWay, Subsystem
+from numerous.engine.simulation.solvers.numerous_solver.solver_methods import RK45
 
 from numerous import EquationBase
 from numerous.multiphysics import Equation
@@ -139,29 +140,29 @@ def timeit(s):
     return dt
 
 if __name__ == "__main__":
-    import resource
-    import sys
+    #import resource
+    #import sys
 
     # print(resource.getrlimit(resource.RLIMIT_STACK))
     # print(sys.getrecursionlimit())
 
-    max_rec = 0x100000
+    #max_rec = 0x100000
 
     # May segfault without this line. 0x100 is a guess at the size of each stack frame.
-    resource.setrlimit(resource.RLIMIT_STACK, [0x1000 * max_rec, resource.RLIM_INFINITY])
-    sys.setrecursionlimit(max_rec)
+    #resource.setrlimit(resource.RLIMIT_STACK, [0x1000 * max_rec, resource.RLIM_INFINITY])
+    #sys.setrecursionlimit(max_rec)
     # Create a model with three nodes
 
     X = []
     Y = []
     Z = []
 
-    num_nodes =[10,1000,10000]
+    num_nodes =[10,1000]
     Tinit = 100
     T0 = 25
     k = 1
 
-    solver_type = SolverType.NUMEROUS
+    solver_type = SolverType.SOLVER_IVP
     for i in num_nodes:#range(1,num_nodes+1):
 
         m = Model(ThermalCapacitancesSeries("tcs", num_nodes=i, Tinit=Tinit, T0=T0, k=k))
@@ -169,7 +170,8 @@ if __name__ == "__main__":
 
         # print(m.states_as_vector)
         # Define simulation
-        s = Simulation(m, t_start=0, t_stop=100, num=100, num_inner=1, max_step=0.1, solver_type=solver_type)
+        s = Simulation(m, t_start=0, t_stop=100, num=100, num_inner=1, max_step=0.1, solver_type=solver_type,
+                       method='RK45')
         #
         # solve simulation
         dt = timeit(s)

@@ -8,11 +8,6 @@ from numba import njit
 from numba.core.dispatcher import OmittedArg
 from numba.experimental import jitclass
 from tqdm import tqdm
-from line_profiler import LineProfiler
-
-
-
-
 from numerous.engine.simulation.solvers.base_solver import BaseSolver
 from .solver_methods import LevenbergMarquardt
 
@@ -32,7 +27,7 @@ class Numerous_solver(BaseSolver):
         odesolver_options = {'dt': dt, 'longer': 1.2, 'shorter': 0.8, 'min_dt': dt, 'strict_eval': False, 'max_step': dt,
                              'first_step': dt, 'atol': 1e-6, 'rtol': 1e-3, 'order': 5, 'outer_itermax': 20}
         self.method_options = odesolver_options
-        self.method = LevenbergMarquardt
+        self.method = kwargs.get('method', LevenbergMarquardt)
         self.y0 = y0
         # Generate the solver
         self._non_compiled_solve = self.generate_solver()
@@ -99,13 +94,13 @@ class Numerous_solver(BaseSolver):
                 # updated events time estimates
                 # # time acceleration
                 if not step_converged:
-                    dt *= shorter
+
                     if min_step > dt:
                         raise ValueError('dt shortened below min_dt')
                     decrease = True
                     te_array[0] = t_previous+dt
                 else:
-                    dt = min(max_step, dt * longer)
+                    dt = min(max_step, dt)
                     decrease = False
 
                     te_array[0] = t + dt
@@ -132,7 +127,7 @@ class Numerous_solver(BaseSolver):
                         j_i += 1
                         p_size = 100
                         x = int(p_size * j_i / progress_c)
-                        print(t)
+                        #print(t)
                         numba_model.historian_update(t)
                         if strict_eval:
                             te_array[1] = t_next_eval = t_eval[ix_eval + 1] if ix_eval + 1 < len(t_eval) else t_eval[-1]
@@ -152,12 +147,14 @@ class Numerous_solver(BaseSolver):
                 dt_ = t_new_test - t_start
 
                     # solve from start to new test by calling the step function
-                t, y, step_converged, step_info, _solve_state = step_integrate_(numba_model,
+                t, y, step_converged, step_info, _solve_state, factor = step_integrate_(numba_model,
                                                                                 t_start,
                                                                                 dt_, y,
                                                                                 get_order_y(roller, order_), order_,
                                                                                 _solve_state)
 
+
+                dt*=factor
                 if step_converged:
                     y_previous = y
                     t_previous = t

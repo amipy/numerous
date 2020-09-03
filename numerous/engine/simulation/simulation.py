@@ -4,7 +4,7 @@ import numpy as np
 from numerous.engine.simulation.solvers.base_solver import SolverType
 from numerous.engine.simulation.solvers.ivp_solver.ivp_solver import IVP_solver
 from .solvers.numerous_solver.numerous_solver import Numerous_solver
-from line_profiler import LineProfiler
+
 
 class Simulation:
     """
@@ -83,12 +83,13 @@ class Simulation:
         #                                               key=lambda callback: callback.priority,
         #                                               reverse=True)]
 
-    def solve(self, profile=False):
+    def solve(self, profile=False, lp=None):
         self.__init_step()
 
         try:
             if profile:
-                lp = LineProfiler()
+                if lp is None:
+                    raise Exception ('No profiler chosen')
                 lp_wrapper=lp(self.solver.solve)
                 lp_wrapper(lp=lp,profile=profile)
                 lp.print_stats()

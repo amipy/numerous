@@ -196,8 +196,8 @@ class Model:
                 return variable.idx_in_scope[0]
 
         # maps flat var_idx to scope_idx
-        self.var_idx_to_scope_idx = np.full_like(scope_variables_flat, -1, int)
-        self.var_idx_to_scope_idx_from = np.full_like(scope_variables_flat, -1, int)
+        self.var_idx_to_scope_idx = np.full_like(scope_variables_flat, -1, np.int64)
+        self.var_idx_to_scope_idx_from = np.full_like(scope_variables_flat, -1, np.int64)
 
         non_flat_scope_idx_from = [[] for _ in range(len(self.synchronized_scope))]
         non_flat_scope_idx = [[] for _ in range(len(self.synchronized_scope))]
@@ -260,7 +260,7 @@ class Model:
         # max_scope_len: maximum number of variables one item can have
         # not correcly sized, as np.object
         # (eq_idx, ind_of_eq_access, var_index_in_scope) -> scope_variable.value
-        self.index_helper = np.empty(len(self.synchronized_scope), int)
+        self.index_helper = np.empty(len(self.synchronized_scope), np.int64)
         max_scope_len = max(map(len, self.non_flat_scope_idx_from))
         self.scope_vars_3d = np.zeros([len(self.compiled_eq), np.max(self.num_uses_per_eq), max_scope_len])
 
@@ -339,7 +339,7 @@ class Model:
             np.fromiter(itertools.starmap(list.index,
                                           zip(map(list, _non_flat_scope_idx[_scope_idxs]),
                                               var_idxs)),
-                        int))
+                        np.int64))
 
 
     def get_states(self):

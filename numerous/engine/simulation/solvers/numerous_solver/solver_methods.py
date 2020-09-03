@@ -5,6 +5,90 @@ import logging
 
 from .linalg.lapack.lapack_python import lapack_solve_triangular, lapack_cholesky
 
+class RK45():
+    def __init__(self, **options):
+
+
+        @njit
+        def Rk45(nm, t, dt, y, yold, _order, _solve_state):
+
+            c = _solve_state[0]
+            a = _solve_state[1]
+            b = _solve_state[2]
+
+            converged = False
+            order = 5
+            tnew = t+dt
+            e_max = 1e-2
+
+            k = np.zeros((order+1, len(y)))
+            k[0,:] = nm.func(t, y)
+            step_info = 1
+
+            rk_sum_4 = k[0,:]*b[0,0]
+            rk_sum_5 = k[0,:]*b[1,0]
+            for i in range(1,order+1):
+                dy = np.dot(k[:i].T, a[i,:i])*dt
+                k[i,:] = nm.func(t+c[i]*dt, y+dy)
+
+                rk_sum_4 += b[0, i] * k[i]
+                rk_sum_5 += b[1, i] * k[i]
+
+            y5 = y+dt*rk_sum_5
+            y4 = y+dt*rk_sum_4
+
+            res = np.linalg.norm((y5-y4)/dt)
+            delta = (e_max/(2*res))**(1/4)
+            if res <= e_max:
+                converged = True
+
+            ynew = y5
+
+            return tnew, ynew, converged, step_info, _solve_state, delta
+
+        self.step_func = Rk45
+
+    def get_solver_state(self,_, **kwargs):
+        c = np.zeros(6)
+        c[0] = 0
+        c[1] = 1/4
+        c[2] = 3/8
+        c[3] = 12/13
+        c[4] = 1
+        c[5] = 1/2
+        a = np.zeros((6,5))
+        b = np.zeros((2,6))
+        a[1, 0] = 1/4
+        a[2, 0] = 3/32
+        a[2, 1] = 9/32
+        a[3, 0] = 1932/2197
+        a[3, 1] = -7200/2197
+        a[3, 2] = 7296/2197
+        a[4, 0] = 439/216
+        a[4, 1] = -8
+        a[4, 2] = 3680/513
+        a[4, 3] = -845/4104
+        a[5, 0] = -8/27
+        a[5, 1] = 2
+        a[5, 2] = -3544/2565
+        a[5, 3] = 1859/4104
+        a[5, 4] = -11/40
+
+        b[0, 0] = 25/216
+        b[0, 1] = 0
+        b[0, 2] = 1408/2565
+        b[0, 3] = 2197/4104
+        b[0, 4] = -1/5
+        b[0, 5] = 0
+
+        b[1, 0] = 16/135
+        b[1, 1] = 0
+        b[1, 2] = 6656/12825
+        b[1, 3] = 28561/56430
+        b[1, 4] = -9/50
+        b[1, 5] = 2/55
+
+        return (c, a, b, kwargs.get('longer', 1.2), kwargs.get('shorter', 0.8))
 
 class LevenbergMarquardt:
     def __init__(self, **options):
