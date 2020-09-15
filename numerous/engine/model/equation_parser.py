@@ -62,7 +62,7 @@ class Equation_Parser():
                     p = re.compile(r" +def +\w+(?=\()")
                     eq_text = p.sub("def eval", eq_text)
 
-                    eq_text = eq_text.replace("@Equation()", "@simple_vectorize(func_text, scopes_map)")
+                    eq_text = eq_text.replace("@Equation()", "@simple_vectorize(func_text, scopes_map,eq_text,eq_id)")
                     eq_text = eq_text.replace("self,", "")
                     eq_text = eq_text.replace("def eval( scope)", "def eval(scope, scope_id)")
                     eq_text = eq_text.strip()
@@ -79,7 +79,7 @@ class Equation_Parser():
 
                     eq_text = eq_text_2 + "\n   return eval"
                     # eq_text = "def test():\n   from numba import guvectorize\n   import numpy as np\n"+eq_text
-                    eq_text = "def eq_body(func_text, scopes_map):\n   from numerous.engine.model.simple_vectorizer import simple_vectorize\n   import numpy as np\n" + eq_text
+                    eq_text = "def eq_body(func_text, scopes_map,eq_text,eq_id):\n   from numerous.engine.model.simple_vectorizer import simple_vectorize\n   import numpy as np\n" + eq_text
             else:
                 eq_id = "empty_equation"
                 eq_out_m = 0
@@ -87,7 +87,7 @@ class Equation_Parser():
                 if eq_id in compiled_equations_ids:
                     compiled_equations_idx.append(compiled_equations_ids.index(eq_id))
                     continue
-                eq_text = "def eq_body(func_text, scopes_map):\n   def eval(self,scope):\n      pass\n   return eval"
+                eq_text = "def eq_body(func_text, scopes_map,eq_text,eq_id):\n   def eval(self,scope):\n      pass\n   return eval"
 
             tree = ast.parse(eq_text, mode='exec')
             if model.save_equations:
@@ -100,7 +100,7 @@ class Equation_Parser():
 
             compiled_equations_idx.append(len(compiled_equations_ids))
             compiled_equations_ids.append(eq_id)
-            compiled_eq.append(list(namespace.values())[1](model.equation_dict[tt][0], scope_map))
+            compiled_eq.append(list(namespace.values())[1](model.equation_dict[tt][0], scope_map,eq_text,eq_id))
             compiled_eq_m.append(eq_out_m)
 
         return np.array(compiled_eq), np.array(compiled_equations_idx, dtype=np.int64), np.argsort(
